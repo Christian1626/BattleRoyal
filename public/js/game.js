@@ -14,11 +14,17 @@ var groundGroup;
 var wallGroup;
 var player;
 var land;
+var ammo;
 var cursors;
 
 
 var socket;
 var ready = false;
+
+//bidouille
+var finClick = true;
+
+
 
 var socketClient = function() {
     console.log("socketClient function");
@@ -62,6 +68,7 @@ function preload() {
     game.load.image('ground','tiles/ground.jpg');
     game.load.image('wall','tiles/wall.jpg');
     game.load.image('void','tiles/void.jpg');
+    game.load.image('rocket','tiles/rocket.png');
     game.load.spritesheet('player', 'sprites/player.png', 32, 48);
 }
 
@@ -74,9 +81,14 @@ function create() {
         
         renderMap();
         playerManagement();
+		
+		
+		ammo = game.add.group();
+		ammo.enableBody = true
 
         //controls
         cursors = game.input.keyboard.createCursorKeys();
+		game.input.mouse.capture = true;
     }
 }
 
@@ -88,6 +100,8 @@ function update() {
         downKey = cursors.down.isDown || game.input.keyboard.isDown(Phaser.Keyboard.S);
         leftKey = cursors.left.isDown || game.input.keyboard.isDown(Phaser.Keyboard.Q);
         rightKey = cursors.right.isDown || game.input.keyboard.isDown(Phaser.Keyboard.D);
+		leftClick = game.input.mousePointer.isDown;
+		endLeftClick = game.input.mousePointer.isUp;
 
          player.body.velocity.x = 0;
          player.body.velocity.y = 0;
@@ -128,19 +142,49 @@ function update() {
             player.animations.stop();
             player.frame = 4;
         }
+		
+		//detect when left click is push ( one action )
+		if (leftClick && finClick)
+        {
+            //  shoot a rocket
+			console.log("cou");
+			var missile = ammo.create(player.body.x+1,player.body.y+1,'rocket');
+			
+			missile.rotation = game.physics.arcade.moveToPointer(missile,500,game.input.activePointer);
+			
+			finClick = false;
+			
+        }
+		
+		
+		//detect when left click is released
+		if(endLeftClick){
+			finClick = true;
+		}
 
         game.physics.arcade.collide(wallGroup, player);
+		game.physics.arcade.collide(ammo, player, destroyAmmoAndPlayer);
+		game.physics.arcade.collide(ammo, wallGroup, destroyAmmo);
     }
 
 }
 
+function destroyAmmo(ammo){
+	ammo.kill();
+}
 
+function destroyAmmoAndPlayer(ammo,player){
+	ammo.kill();
+	player.kill();
+}
+	
 
 function renderMap() {
     groundGroup = game.add.group();
     groundGroup.enableBody = true;
     wallGroup = game.add.group();
     wallGroup.enableBody = true
+	
 
     console.log("RenderMap");
     for (var y = 0; y < dungeon.map_size; y++) {
