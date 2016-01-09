@@ -92,7 +92,7 @@ function create() {
 
         //controls
         cursors = game.input.keyboard.createCursorKeys();
-		game.input.mouse.capture = true;
+        game.input.onDown.add(fireRocket, this);
     }
 }
 
@@ -100,17 +100,21 @@ function create() {
 function update() {
 
     if(ready) {
+        //physics collision
+        game.physics.arcade.collide(wallGroup, player);
+        //game.physics.arcade.collide(ammo, player, destroyAmmoAndPlayer); //TODO: collision with enemyPlayer
+        game.physics.arcade.collide(ammo, wallGroup, destroyAmmo);
+
+        //input keys
         upKey = cursors.up.isDown || game.input.keyboard.isDown(Phaser.Keyboard.Z);
         downKey = cursors.down.isDown || game.input.keyboard.isDown(Phaser.Keyboard.S);
         leftKey = cursors.left.isDown || game.input.keyboard.isDown(Phaser.Keyboard.Q);
         rightKey = cursors.right.isDown || game.input.keyboard.isDown(Phaser.Keyboard.D);
-		leftClick = game.input.mousePointer.isDown;
-		endLeftClick = game.input.mousePointer.isUp;
 
-         player.body.velocity.x = 0;
-         player.body.velocity.y = 0;
+    
+        player.body.velocity.x = 0;
+        player.body.velocity.y = 0;
 
-         
 
         if (leftKey)
         {
@@ -152,37 +156,9 @@ function update() {
         }
 
 
-
         //TODO: envoyer la position du joueur actuel au serveur
+                
 
-
-
-		
-        //TODO: envoyer les missiles au server
-
-
-		//detect when left click is push ( one action )
-		if (leftClick && finClick)
-        {
-            //  shoot a rocket
-			console.log("shoot a rocket");
-			var missile = ammo.create(player.body.x+1,player.body.y+1,'rocket');
-			
-			missile.rotation = game.physics.arcade.moveToPointer(missile,bulletVelocity,game.input.activePointer);
-			
-			finClick = false;
-			
-        }
-		
-		
-		//detect when left click is released
-		if(endLeftClick){
-			finClick = true;
-		}
-
-        game.physics.arcade.collide(wallGroup, player);
-		//game.physics.arcade.collide(ammo, player, destroyAmmoAndPlayer); //TODO: collision with enemyPlayer
-		game.physics.arcade.collide(ammo, wallGroup, destroyAmmo);
     }
 
 }
@@ -195,13 +171,24 @@ function destroyAmmoAndPlayer(ammo,player){
 	ammo.kill();
 	player.kill();
 }
+
+function fireRocket() {
+    console.log("fire");
+    if(game.input.activePointer.isDown) {
+        console.log("shoot a rocke222");
+        var missile = ammo.create(player.body.x+1,player.body.y+1,'rocket');    
+        missile.rotation = game.physics.arcade.moveToPointer(missile,bulletVelocity,game.input.activePointer);
+         //TODO: envoyer les missiles au server
+    }
+            
+}
 	
 
 function renderMap() {
     groundGroup = game.add.group();
     groundGroup.enableBody = true;
     wallGroup = game.add.group();
-    wallGroup.enableBody = true
+    wallGroup.enableBody = true;
 	
 
     console.log("RenderMap");
