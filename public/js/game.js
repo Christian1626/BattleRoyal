@@ -8,6 +8,9 @@ var playerSpeed = 500;
 //var scaleRatio = window.devicePixelRatio / 3;
 
 var current_player = {};
+var enemyPlayer = {};
+
+var bulletVelocity = 700;
 
 var dungeon = {};
 var groundGroup;
@@ -29,7 +32,8 @@ var finClick = true;
 var socketClient = function() {
     console.log("socketClient function");
     socket = io.connect('http://localhost:8080'); 
-    current_player.username = prompt('Quel est votre pseudo ?');
+    //current_player.username = prompt('Quel est votre pseudo ?');
+    current_player.username = "Test";
 
     //Sending to server 
     socket.emit('new_player',current_player.username);
@@ -106,20 +110,22 @@ function update() {
          player.body.velocity.x = 0;
          player.body.velocity.y = 0;
 
+         
+
         if (leftKey)
         {
             //  Move to the left
             player.body.velocity.x = -playerSpeed;
             player.animations.play('left');
+            current_player.x = player.body.x;
         }
 
         if (rightKey)
         {
             //  Move to the right
-            console.log("toto");
-           // player.body.velocity.x = playerSpeed;
             player.body.velocity.x = playerSpeed;
             player.animations.play('right');
+            current_player.x = player.body.x;
         }
 
         if (upKey)
@@ -127,6 +133,7 @@ function update() {
             //  Move to the up
             player.body.velocity.y = -playerSpeed;
             player.animations.play('right');
+            current_player.x = player.body.y;
         }
 
         if (downKey)
@@ -134,23 +141,34 @@ function update() {
             //  Move to the down
             player.body.velocity.y = playerSpeed;
             player.animations.play('right');
+            current_player.x = player.body.y;
         }
         
-        if(!(cursors.down.isDown || cursors.up.isDown || cursors.left.isDown || cursors.right.isDown || cursors.down.isDown || game.input.keyboard.isDown(Phaser.Keyboard.Q) || game.input.keyboard.isDown(Phaser.Keyboard.S)|| game.input.keyboard.isDown(Phaser.Keyboard.D) || game.input.keyboard.isDown(Phaser.Keyboard.Z)))
+        if(!(leftKey || rightKey || upKey || downKey))
         {
             //  Stand still
             player.animations.stop();
             player.frame = 4;
         }
+
+
+
+        //TODO: envoyer la position du joueur actuel au serveur
+
+
+
 		
+        //TODO: envoyer les missiles au server
+
+
 		//detect when left click is push ( one action )
 		if (leftClick && finClick)
         {
             //  shoot a rocket
-			console.log("cou");
+			console.log("shoot a rocket");
 			var missile = ammo.create(player.body.x+1,player.body.y+1,'rocket');
 			
-			missile.rotation = game.physics.arcade.moveToPointer(missile,500,game.input.activePointer);
+			missile.rotation = game.physics.arcade.moveToPointer(missile,bulletVelocity,game.input.activePointer);
 			
 			finClick = false;
 			
@@ -163,7 +181,7 @@ function update() {
 		}
 
         game.physics.arcade.collide(wallGroup, player);
-		game.physics.arcade.collide(ammo, player, destroyAmmoAndPlayer);
+		//game.physics.arcade.collide(ammo, player, destroyAmmoAndPlayer); //TODO: collision with enemyPlayer
 		game.physics.arcade.collide(ammo, wallGroup, destroyAmmo);
     }
 

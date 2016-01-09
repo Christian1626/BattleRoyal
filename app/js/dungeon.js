@@ -159,7 +159,7 @@ Dungeon.prototype.placeNewPlayer = function () {
 }
 
 
-var Renderer = {
+/*var Renderer = {
     canvas: null,
     ctx: null,
     size: 512,
@@ -182,7 +182,7 @@ var Renderer = {
             }
         }
     }
-};
+};*/
 
 var Helpers = {
     GetRandom: function (low, high) {
