@@ -8,10 +8,10 @@ var playerSpeed = 500;
 //var scaleRatio = window.devicePixelRatio / 3;
 
 var current_player = {};
-var enemyPlayer = {};
-
+var enemyPlayers;
+var playersList ={};
 var bulletVelocity = 700;
-
+var id=1;
 var dungeon = {};
 var groundGroup;
 var wallGroup;
@@ -19,21 +19,21 @@ var player;
 var land;
 var ammo;
 var cursors;
+var bullets;
+var player_sprite;
+var myPosition;
+var ser
+
 
 
 var socket;
 var ready = false;
 
-//bidouille
-var finClick = true;
-
-
-
 var socketClient = function() {
-    console.log("socketClient function");
+   // console.log("socketClient function");
     socket = io.connect('http://localhost:8080'); 
-    //current_player.username = prompt('Quel est votre pseudo ?');
-    current_player.username = "Test";
+    current_player.username = prompt('Quel est votre pseudo ?');
+    //current_player.username = "Test";
 
     //Sending to server 
     socket.emit('new_player',current_player.username);
@@ -44,21 +44,24 @@ var socketClient = function() {
     });
 
     socket.on('current_player',function(player){
-        current_player = player;
+
     });
 
+    socket.on('getAllPlayers',function(enemies) {
+        console.log("getallplayers");
+        for (var id in enemies) {
+            renderEnemy(enemies[id]);
+        }
+        
+    });
 
     //new user
     socket.on('new_player',function(new_player){
-        console.log('nouveau client connecté: '+new_player);
-        //display new player
-        renderNewPlayer(new_player);
-        playerManagement();
+        renderEnemy(new_player);
     });
 
     //dungeon
     socket.on('dungeon',function(map){
-        console.log('dungeon');
         dungeon = map;
         ready = true;
         create();
@@ -77,112 +80,35 @@ function preload() {
 }
 
 function create() {
-    if(ready) {
-        game.world.setBounds(0, 0, map_size*tile_width, map_size*tile_height);
-        game.physics.setBoundsToWorld();
-        console.log("create");
-        game.physics.startSystem(Phaser.Physics.ARCADE);
-        
-        renderMap();
-        playerManagement();
-		
-		
-		ammo = game.add.group();
-		ammo.enableBody = true
+    game.world.setBounds(0, 0, map_size*tile_width, map_size*tile_height);
+    game.stage.disableVisibilityChange  = true;
+    game.physics.setBoundsToWorld();
+    game.physics.startSystem(Phaser.Physics.ARCADE);
+    
+    renderMap();
 
-        //controls
-        cursors = game.input.keyboard.createCursorKeys();
-        game.input.onDown.add(fireRocket, this);
-    }
+    player = new Player(current_player.id, game, player_sprite);
+    playersList[current_player.id] = player;
+    console.log("player:",playersList[current_player.id])
+    current_player = player.player_sprite;
+    current_player.x = 100;
+    current_player.y = 100;
+
+    //bullets = current_player.bullets;
+	
+    game.camera.follow(current_player);
+   
+    //controls
+    cursors = game.input.keyboard.createCursorKeys();
 }
 
 
 function update() {
-
-    if(ready) {
-        //physics collision
-        game.physics.arcade.collide(wallGroup, player);
-        //game.physics.arcade.collide(ammo, player, destroyAmmoAndPlayer); //TODO: collision with enemyPlayer
-        game.physics.arcade.collide(ammo, wallGroup, destroyAmmo);
-
-        //input keys
-        upKey = cursors.up.isDown || game.input.keyboard.isDown(Phaser.Keyboard.Z);
-        downKey = cursors.down.isDown || game.input.keyboard.isDown(Phaser.Keyboard.S);
-        leftKey = cursors.left.isDown || game.input.keyboard.isDown(Phaser.Keyboard.Q);
-        rightKey = cursors.right.isDown || game.input.keyboard.isDown(Phaser.Keyboard.D);
-
-    
-        player.body.velocity.x = 0;
-        player.body.velocity.y = 0;
-
-
-        if (leftKey)
-        {
-            //  Move to the left
-            player.body.velocity.x = -playerSpeed;
-            player.animations.play('left');
-            current_player.x = player.body.x;
-        }
-
-        if (rightKey)
-        {
-            //  Move to the right
-            player.body.velocity.x = playerSpeed;
-            player.animations.play('right');
-            current_player.x = player.body.x;
-        }
-
-        if (upKey)
-        {
-            //  Move to the up
-            player.body.velocity.y = -playerSpeed;
-            player.animations.play('right');
-            current_player.x = player.body.y;
-        }
-
-        if (downKey)
-        {
-            //  Move to the down
-            player.body.velocity.y = playerSpeed;
-            player.animations.play('right');
-            current_player.x = player.body.y;
-        }
-        
-        if(!(leftKey || rightKey || upKey || downKey))
-        {
-            //  Stand still
-            player.animations.stop();
-            player.frame = 4;
-        }
-
-
-        //TODO: envoyer la position du joueur actuel au serveur
-                
-
-    }
-
+    if (!ready) return;
+    game.physics.arcade.collide(current_player, wallGroup);
+    player.update();
 }
 
-function destroyAmmo(ammo){
-	ammo.kill();
-}
-
-function destroyAmmoAndPlayer(ammo,player){
-	ammo.kill();
-	player.kill();
-}
-
-function fireRocket() {
-    console.log("fire");
-    if(game.input.activePointer.isDown) {
-        console.log("shoot a rocke222");
-        var missile = ammo.create(player.body.x+1,player.body.y+1,'rocket');    
-        missile.rotation = game.physics.arcade.moveToPointer(missile,bulletVelocity,game.input.activePointer);
-         //TODO: envoyer les missiles au server
-    }
-            
-}
-	
 
 function renderMap() {
     groundGroup = game.add.group();
@@ -207,7 +133,7 @@ function renderMap() {
                 tileSprite = wallGroup.create(x*tile_width, y*tile_height,'wall');
                 tileSprite.body.immovable = true;
             } 
-            tileSprite.scale.set(tile_height/10 , tile_height/10 ); //TODO
+            tileSprite.scale.set(tile_height/11 , tile_height/11 ); //TODO
 
 
            // this.ctx.fillRect(x * this.scale, y * this.scale, this.scale, this.scale);
@@ -215,45 +141,12 @@ function renderMap() {
     }
 }
 
-function playerManagement() {
+function renderEnemy(new_enemy) {
     //place player on random position
-    player = game.add.sprite(current_player.x*tile_width, current_player.y*tile_height, 'player');
-      toto = game.add.sprite(current_player.x*tile_width+50, current_player.y*tile_height+50, 'player');
-    //player.scale.set(0.3 , 0.3 );
-
-    //  We need to enable physics on the player
-    game.physics.arcade.enable(player);
-
-    //  Player physics properties. Give the little guy a slight bounce.
-    player.body.collideWorldBounds = true;
-
-    //  Our two animations, walking left and right.
-    player.animations.add('left', [0, 1, 2, 3], 10, true);
-    player.animations.add('right', [5, 6, 7, 8], 10, true);
-    //TODO: ajouter sprite top & botoom
-
-    game.camera.follow(player);
-}
-
-function renderNewPlayer(new_player) {
-    //place player on random position
-    console.log(new_player);
-    new_player = game.add.sprite(new_player.x*tile_width, new_player.y*tile_height, 'player');
-
-    new_player = game.add.sprite(player.x, player.y, 'player');
-
-    //  We need to enable physics on the player
-    game.physics.arcade.enable(new_player);
-
-    //  Player physics properties. Give the little guy a slight bounce.
-    new_player.body.collideWorldBounds = true;
-
-    //  Our two animations, walking left and right.
-    new_player.animations.add('left', [0, 1, 2, 3], 10, true);
-    new_player.animations.add('right', [5, 6, 7, 8], 10, true);
-    //TODO: ajouter sprite top & botoom
-
-   
+    console.log("new_enemy:",new_enemy);
+    enemy  = new Player(id, game, player);
+    enemy.player_sprite.x = new_enemy.x;
+    enemy.player_sprite.y = new_enemy.y;
 }
 
 function random(min,max) {
@@ -261,3 +154,105 @@ function random(min,max) {
 }
 
 
+////////////////////////////////////////////////////////////////////////////
+//                             PLAYER
+////////////////////////////////////////////////////////////////////////////
+
+Player = function (index, game, player_sprite) {
+    var x = 0;
+    var y = 0;
+
+    this.game = game;
+    this.health = 30;
+    this.player_sprite = player_sprite;
+
+    this.bullets = game.add.group();
+    this.bullets.enableBody = true;
+    this.bullets.physicsBodyType = Phaser.Physics.ARCADE;
+    this.bullets.createMultiple(20, 'bullet', 0, false);
+    this.bullets.setAll('anchor.x', 0.5);
+    this.bullets.setAll('anchor.y', 0.5);
+    this.bullets.setAll('outOfBoundsKill', true);
+    this.bullets.setAll('checkWorldBounds', true);  
+    
+    this.currentSpeed =0;
+    this.fireRate = 500;
+    this.nextFire = 0;
+    this.alive = true;
+
+    this.player_sprite = game.add.sprite(x, y, 'player');
+    this.player_sprite.anchor.set(0.5);
+
+    this.player_sprite.id = index;
+    game.physics.enable(this.player_sprite, Phaser.Physics.ARCADE);
+    this.player_sprite.body.immovable = false;
+    this.player_sprite.body.collideWorldBounds = true;
+    this.player_sprite.body.bounce.setTo(0, 0);
+    this.player_sprite.animations.add('left', [0, 1, 2, 3], 10, true);
+    this.player_sprite.animations.add('right', [5, 6, 7, 8], 10, true);
+
+};
+
+Player.prototype.update = function() {
+    this.player_sprite.body.velocity.x = 0;
+    this.player_sprite.body.velocity.y = 0;
+
+    upKey = cursors.up.isDown || game.input.keyboard.isDown(Phaser.Keyboard.Z);
+    downKey = cursors.down.isDown || game.input.keyboard.isDown(Phaser.Keyboard.S);
+    leftKey = cursors.left.isDown || game.input.keyboard.isDown(Phaser.Keyboard.Q);
+    rightKey = cursors.right.isDown || game.input.keyboard.isDown(Phaser.Keyboard.D);
+
+    if (leftKey)
+        {
+            //  Move to the left
+            this.player_sprite.body.velocity.x = -playerSpeed;
+            this.player_sprite.animations.play('left');
+        }
+
+        if (rightKey)
+        {
+            //  Move to the right
+            this.player_sprite.body.velocity.x = playerSpeed;
+            this.player_sprite.animations.play('right');
+        }
+
+        if (upKey)
+        {
+            //  Move to the up
+            this.player_sprite.body.velocity.y = -playerSpeed;
+            this.player_sprite.animations.play('right');
+        }
+
+        if (downKey)
+        {
+            //  Move to the down
+            this.player_sprite.body.velocity.y = playerSpeed;
+            this.player_sprite.animations.play('right');
+        }
+        
+        if(!(leftKey || rightKey || upKey || downKey))
+        {
+            //  Stand still
+            this.player_sprite.animations.stop();
+            this.player_sprite.frame = 4;
+        }
+};
+
+
+/*Player.prototype.fire = function(target) {
+        if (!this.alive) return;
+        if (this.game.time.now > this.nextFire && this.bullets.countDead() > 0)
+        {
+            this.nextFire = this.game.time.now + this.fireRate;
+            var bullet = this.bullets.getFirstDead();
+            bullet.reset(this.turret.x, this.turret.y);
+
+            bullet.rotation = this.game.physics.arcade.moveToObject(bullet, target, 500);
+        }
+}*/
+
+
+Player.prototype.kill = function() {
+    this.alive = false;
+    this.player_sprite.kill();
+}

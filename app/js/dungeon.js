@@ -149,7 +149,7 @@ Dungeon.prototype.placeNewPlayer = function () {
     for (var y = 0; y < this.map_size; y++) {
         for (var x = 0; x < this.map_size; x++) {
             if(this.map[x][y] == 1) { //TODO: si il n'y a pas de joueur/objet/monstre
-                spawn_available.push({'x':x,'y':y});
+                spawn_available.push({'x':x*70,'y':y*70});
             }
         }
     }
