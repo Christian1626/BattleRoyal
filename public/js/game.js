@@ -17,12 +17,23 @@ var groundGroup;
 var wallGroup;
 var player;
 var land;
-var ammo;
+
+
 var cursors;
 var bullets;
+var nextFire=0;
+var fireRateGun = 150;
+var fireRateRocket = 500;
+
+
+
 var player_sprite;
 var myPosition;
 var ser
+
+
+var text;
+var style = { font: "30px Arial", fill: "#ffffff", align: "left" };
 
 
 
@@ -76,6 +87,7 @@ function preload() {
     game.load.image('wall','tiles/wall.jpg');
     game.load.image('void','tiles/void.jpg');
     game.load.image('rocket','tiles/rocket.png');
+    game.load.image('gun','tiles/gun.png');
     game.load.spritesheet('player', 'sprites/player.png', 32, 48);
 }
 
@@ -87,7 +99,10 @@ function create() {
     
     renderMap();
 
-    player = new Player(current_player.id, game, player_sprite);
+    bullets = game.add.group();
+    bullets.enableBody = true;
+
+    player = new Player(current_player.id, game, player_sprite,current_player.username);
     playersList[current_player.id] = player;
     console.log("player:",playersList[current_player.id])
     current_player = player.player_sprite;
@@ -100,13 +115,20 @@ function create() {
    
     //controls
     cursors = game.input.keyboard.createCursorKeys();
+    game.input.mouse.capture = true;
+
+
+    text = game.add.text(game.camera.x,game.camera.y,"Bonjour !",style);
+
 }
 
 
 function update() {
     if (!ready) return;
     game.physics.arcade.collide(current_player, wallGroup);
+    game.physics.arcade.collide(bullets, wallGroup, destroyAmmo);
     player.update();
+
 }
 
 
@@ -158,13 +180,17 @@ function random(min,max) {
 //                             PLAYER
 ////////////////////////////////////////////////////////////////////////////
 
-Player = function (index, game, player_sprite) {
+Player = function (index, game, player_sprite,username) {
     var x = 0;
     var y = 0;
 
     this.game = game;
     this.health = 30;
     this.player_sprite = player_sprite;
+    this.username = username;
+
+    this.availableWeapons = [new Weapon(game,"gun",150,0),new Weapon(game,"rocket",500,1)];
+    this.actualWeapon = this.availableWeapons[0];
 
     this.bullets = game.add.group();
     this.bullets.enableBody = true;
@@ -194,6 +220,10 @@ Player = function (index, game, player_sprite) {
 };
 
 Player.prototype.update = function() {
+
+    text.position.setTo(game.camera.x+20,game.camera.y+20);
+    text.setText("name: "+this.username+"\nlife: "+this.health+"\nweapon: "+this.actualWeapon.name);
+
     this.player_sprite.body.velocity.x = 0;
     this.player_sprite.body.velocity.y = 0;
 
@@ -201,6 +231,10 @@ Player.prototype.update = function() {
     downKey = cursors.down.isDown || game.input.keyboard.isDown(Phaser.Keyboard.S);
     leftKey = cursors.left.isDown || game.input.keyboard.isDown(Phaser.Keyboard.Q);
     rightKey = cursors.right.isDown || game.input.keyboard.isDown(Phaser.Keyboard.D);
+
+    click = game.input.activePointer.isDown;
+
+    rightClick = game.input.keyboard.isDown(Phaser.Keyboard.E);
 
     if (leftKey)
         {
@@ -236,6 +270,17 @@ Player.prototype.update = function() {
             this.player_sprite.animations.stop();
             this.player_sprite.frame = 4;
         }
+
+
+        if(click){
+            fire();
+        }
+
+        if(rightClick) {
+            console.log("switch weapon");
+            this.actualWeapon = this.availableWeapons[(this.actualWeapon.number+1)%this.availableWeapons.length];
+        }
+
 };
 
 
@@ -255,4 +300,50 @@ Player.prototype.update = function() {
 Player.prototype.kill = function() {
     this.alive = false;
     this.player_sprite.kill();
+}
+
+
+function destroyAmmo(ammo){
+    ammo.kill();
+}
+
+function destroyAmmoAndPlayer(ammo,player){
+    ammo.kill();
+    player.kill();
+}
+/*
+function fireRocket() {
+    game.input.mouse.capture = true;
+
+    console.log("fire");
+    if(game.input.activePointer.isDown && player.weapon == "rocket") {
+
+        console.log("shoot a rocke222");
+        var missile = bullets.create(current_player.body.x+16,current_player.body.y+24,'rocket');    
+        missile.rotation = game.physics.arcade.moveToPointer(missile,bulletVelocity,game.input.activePointer);
+        
+         //TODO: envoyer les missiles au server
+    }     
+}*/
+
+function fire(){
+    
+    if(game.time.now > nextFire){
+        nextFire = game.time.now + player.actualWeapon.fireRate;
+        var projectile = bullets.create(current_player.body.x+16,current_player.body.y+24,player.actualWeapon.name);    
+        projectile.rotation = game.physics.arcade.moveToPointer(projectile,bulletVelocity,game.input.activePointer);
+    }
+    
+
+}
+
+////////////////////////////////////////////////////////////////////////////
+//                             WEAPON
+////////////////////////////////////////////////////////////////////////////
+
+Weapon = function (game,name,fireRate,number) {
+    this.game = game;
+    this.name = name;
+    this.fireRate = fireRate;
+    this.number = number;
 }
