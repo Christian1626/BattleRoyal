@@ -35,11 +35,15 @@ io.sockets.on('connection',function(socket){
         console.log('nouvelle utilisateur:'+username);
         socket.username = username; 
 
+        console.log(socket.username);
         //place player on map
+        //var player_position = {x: 200,y:200};
         var player_position = dungeon.placeNewPlayer();
 
-        console.log(players.getAll());
 
+
+        /*console.log(players.getAll());
+*/
         //send map to current player
         socket.emit('dungeon',dungeon);
 
@@ -48,15 +52,17 @@ io.sockets.on('connection',function(socket){
         //save player
         players(socket.id,{id:socket.id,username:username,x:player_position.x,y:player_position.y});
 
-        //send the new player to everyone
-        socket.broadcast.emit('new_player',players.get(socket.id));
         
-        socket.emit('getAllPlayers',players.getAll());
-
+        
         //send player
         socket.emit('current_player',players.get(socket.id));
 
-        console.log(players.getAll());
+        
+        //send the new player to everyone
+        socket.broadcast.emit('new_player',players.get(socket.id));
+
+        socket.emit('getAllPlayers',players.getAll());
+        //console.log(players.getAll());
     });
 
     socket.on('move_player',function(player){

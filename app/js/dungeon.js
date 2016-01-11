@@ -155,6 +155,8 @@ Dungeon.prototype.placeNewPlayer = function () {
     }
 
     var rand = Helpers.GetRandom(0,spawn_available.length);
+    //console.log("coucoux"+spawn_available[rand].x);
+    //console.log("coucouy"+spawn_available[rand].y);
     return spawn_available[rand];
 }
 

@@ -55,19 +55,24 @@ var socketClient = function() {
     });
 
     socket.on('current_player',function(player){
-
+        current_player.id = player.id;
+        current_player.x = player.x;
+        current_player.y = player.y;
     });
 
     socket.on('getAllPlayers',function(enemies) {
-        console.log("getallplayers");
-        for (var id in enemies) {
-            renderEnemy(enemies[id]);
+        for (var id in enemies){
+            if(id != current_player.id){
+                console.log("test3"+enemies[id]);
+                renderEnemy(enemies[id]);
+            }
         }
         
     });
 
     //new user
     socket.on('new_player',function(new_player){
+        console.log("test2"+new_player);
         renderEnemy(new_player);
     });
 
@@ -106,8 +111,8 @@ function create() {
     playersList[current_player.id] = player;
     console.log("player:",playersList[current_player.id])
     current_player = player.player_sprite;
-    current_player.x = 100;
-    current_player.y = 100;
+    /*current_player.x = 100;
+    current_player.y = 100;*/
 
     //bullets = current_player.bullets;
 	
@@ -165,8 +170,8 @@ function renderMap() {
 
 function renderEnemy(new_enemy) {
     //place player on random position
-    console.log("new_enemy:",new_enemy);
-    enemy  = new Player(id, game, player);
+    console.log("new_enemy:",new_enemy.x);
+    enemy  = new Player(new_enemy.id, game, player_sprite,new_enemy.username);
     enemy.player_sprite.x = new_enemy.x;
     enemy.player_sprite.y = new_enemy.y;
 }
@@ -188,9 +193,12 @@ Player = function (index, game, player_sprite,username) {
     this.health = 30;
     this.player_sprite = player_sprite;
     this.username = username;
+    this.id = index;
 
     this.availableWeapons = [new Weapon(game,"gun",150,0),new Weapon(game,"rocket",500,1)];
     this.actualWeapon = this.availableWeapons[0];
+
+    this.availableAmmo = {gun : 500, rocket : 100}
 
     this.bullets = game.add.group();
     this.bullets.enableBody = true;
@@ -216,13 +224,15 @@ Player = function (index, game, player_sprite,username) {
     this.player_sprite.body.bounce.setTo(0, 0);
     this.player_sprite.animations.add('left', [0, 1, 2, 3], 10, true);
     this.player_sprite.animations.add('right', [5, 6, 7, 8], 10, true);
+    this.player_sprite.animations.add('front', [10, 9, 10, 11], 10, true);
+    this.player_sprite.animations.add('back', [12, 13, 12, 14], 10, true);
 
 };
 
 Player.prototype.update = function() {
 
     text.position.setTo(game.camera.x+20,game.camera.y+20);
-    text.setText("name: "+this.username+"\nlife: "+this.health+"\nweapon: "+this.actualWeapon.name);
+    text.setText("name: "+this.username+"\nlife: "+this.health+"\nweapon: "+this.actualWeapon.name+"\nammo: "+this.availableAmmo[this.actualWeapon.name]);
 
     this.player_sprite.body.velocity.x = 0;
     this.player_sprite.body.velocity.y = 0;
@@ -254,14 +264,14 @@ Player.prototype.update = function() {
         {
             //  Move to the up
             this.player_sprite.body.velocity.y = -playerSpeed;
-            this.player_sprite.animations.play('right');
+            this.player_sprite.animations.play('back');
         }
 
         if (downKey)
         {
             //  Move to the down
             this.player_sprite.body.velocity.y = playerSpeed;
-            this.player_sprite.animations.play('right');
+            this.player_sprite.animations.play('front');
         }
         
         if(!(leftKey || rightKey || upKey || downKey))
@@ -328,8 +338,9 @@ function fireRocket() {
 
 function fire(){
     
-    if(game.time.now > nextFire){
+    if(game.time.now > nextFire && player.availableAmmo[player.actualWeapon.name] > 0){
         nextFire = game.time.now + player.actualWeapon.fireRate;
+        player.availableAmmo[player.actualWeapon.name]-=1;
         var projectile = bullets.create(current_player.body.x+16,current_player.body.y+24,player.actualWeapon.name);    
         projectile.rotation = game.physics.arcade.moveToPointer(projectile,bulletVelocity,game.input.activePointer);
     }
